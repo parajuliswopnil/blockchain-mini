@@ -1,0 +1,17 @@
+[package]
+name = "node"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+db.workspace = true
+rpc.workspace = true
+mempool.workspace = true
+persy = "1.5.1"
+tokio = {version = "1.39.2", features = ["full"]}
+serde = "1.0.206"
+ethnum = "1.5.0"
+ecdsa = "0.16.9"

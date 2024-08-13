@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [ 
+    "db/", "mempool",
+    "merkle/",
+    "node/", "rpc",
+    "vm/"
+]
+default-members = ["node"]
+
+[workspace.dependencies] 
+db = {path = "db"}
+merkle = {path = "merkle"} 
+vm = {path = "vm"}
+rpc = {path = "rpc"}
+mempool = {path = "mempool"}
+
+[workspace.lints]
+rust.missing_debug_implementations = "warn"
+rust.missing_docs = "warn"
+rust.unreachable_pub = "warn"
+rust.unused_must_use = "deny"
+rust.rust_2018_idioms = "deny"
+rustdoc.all = "warn"
+

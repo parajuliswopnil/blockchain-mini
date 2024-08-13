@@ -1,0 +1,18 @@
+[package]
+name = "rpc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ecdsa = "0.16.9"
+ethnum = "1.5.0"
+hex-literal = "0.4.1"
+hexutil = "0.1.0"
+k256 = "0.13.3"
+serde = { version = "1.0.206", features = ["derive"] }
+serde_json = "1.0.124"
+sha3 = "0.10.8"
+tokio = {version = "1.39.2", features = ["full"]}
+
+[lints]
+workspace = true
