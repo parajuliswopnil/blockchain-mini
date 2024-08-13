@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use tokio::{
     io::{AsyncReadExt, BufStream},
     net::{TcpListener, TcpStream},
+    sync::mpsc::Sender,
 };
 pub use utils::parse_request;
 pub use utils::Request;
@@ -23,7 +24,7 @@ pub enum Method {
 }
 
 /// this is the request body
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Body {
     from: String,
     to: String,
@@ -47,7 +48,7 @@ pub async fn server(sender: tokio::sync::mpsc::Sender<String>) {
     loop {
         let cloned_sender = arc_sender.clone();
         let (socket, _) = listener.accept().await.unwrap();
-        
+
         tokio::spawn(async move {
             process(socket, cloned_sender).await;
         });
@@ -55,7 +56,7 @@ pub async fn server(sender: tokio::sync::mpsc::Sender<String>) {
 }
 
 /// this processes the request
-pub async fn process(socket: TcpStream, sender: Arc<tokio::sync::mpsc::Sender<String>>) {
+pub async fn process(socket: TcpStream, sender: Arc<Sender<String>>) {
     let mut stream = BufStream::new(socket);
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).await.unwrap();
