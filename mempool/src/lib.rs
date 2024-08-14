@@ -6,6 +6,7 @@ use std::{
 };
 
 use tokio::sync::mpsc::Receiver;
+use rpc::Body;
 
 /// Mempool
 #[derive(Debug, Clone)]
@@ -18,7 +19,7 @@ pub struct Mempool {
 #[derive(Debug)]
 pub struct MempoolInner {
     /// records all the transactions that comes to the node
-    pub record: Vec<String>,
+    pub record: Vec<Body>,
 }
 
 impl Mempool {
@@ -30,7 +31,7 @@ impl Mempool {
     }
 
     /// insert record
-    pub fn insert_record(&self, record: String) {
+    pub fn insert_record(&self, record: Body) {
         println!("inserting");
         self.inner.lock().unwrap().record.push(record);
     }
@@ -41,7 +42,7 @@ impl Mempool {
     }
 
     /// get first n records
-    pub fn get_n_records(&self) -> Vec<String> {
+    pub fn get_n_records(&self) -> Vec<Body> {
         let mut total_records = self.get_total_record_count();
         let mut return_vector = Vec::new();
         if total_records > 5 {
@@ -57,13 +58,11 @@ impl Mempool {
 }
 
 /// insert record
-pub async fn insert_record(mempool: Mempool, mut rx: Receiver<String>) {
+pub async fn insert_record(mempool: Mempool, mut rx: Receiver<Body>) {
     loop {
-        let message = rx.recv().await;
-        match message {
-            Some(msg) => mempool.insert_record(msg),
-            None => sleep(time::Duration::from_secs(1)),
-        }
+        if let Some(message) = rx.recv().await {
+            mempool.insert_record(message);
+        }  
     }
 }
 
@@ -78,6 +77,8 @@ pub async fn get_total_record_count(mempool: Mempool) {
 
 /// get first n records
 pub async fn get_n_records(mempool: Mempool) {
-    sleep(time::Duration::from_secs(60));
-    println!("get n records is: {:?}", mempool.get_n_records())
+    loop {
+        sleep(time::Duration::from_secs(10));
+        println!("get n records is: {:?}", mempool.get_n_records())
+    }
 }

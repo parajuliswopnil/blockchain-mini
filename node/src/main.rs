@@ -11,7 +11,7 @@ async fn main() {
 
     let (tx, rx) = mpsc::channel(32);
     let join1 = tokio::spawn(async {
-        rpc::server(tx).await;
+        rpc::server(true, tx).await;
     });
     let mempool1 = mempool.clone();
     let join2 = tokio::spawn(async move {
@@ -36,14 +36,3 @@ async fn main() {
         handle.await.unwrap()
     }
 }
-
-// async fn just_another_task(mut rx: Receiver<String>) {
-//     for _ in 0..100 {
-//         time::sleep(time::Duration::from_secs(1)).await;
-//         let message = rx.recv().await;
-//         match message {
-//             Some(msg) => println!("The message is {}", msg),
-//             None => continue,
-//         }
-//     }
-// }

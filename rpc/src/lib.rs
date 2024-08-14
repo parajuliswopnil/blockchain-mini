@@ -1,5 +1,6 @@
 //! this is to make the compiler happy
-use std::sync::Arc;
+use core::time;
+use std::{fmt::format, sync::Arc, thread::sleep};
 mod utils;
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -41,9 +42,21 @@ impl Body {
 }
 
 /// this is also to make compiler happy
-pub async fn server(sender: tokio::sync::mpsc::Sender<String>) {
-    let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
+pub async fn server(debug: bool, sender: tokio::sync::mpsc::Sender<Body>) {
     let arc_sender = Arc::new(sender);
+    if debug {
+        let mut count = 0u32;
+        loop {
+            let cloned_sender = arc_sender.clone();
+            tokio::spawn(async move {
+                dummy(count, cloned_sender).await;
+            });
+            count+=1;
+            sleep(time::Duration::from_secs(2));
+        }
+    }
+
+    let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
 
     loop {
         let cloned_sender = arc_sender.clone();
@@ -55,14 +68,24 @@ pub async fn server(sender: tokio::sync::mpsc::Sender<String>) {
     }
 }
 
+async fn dummy(count: u32, sender: Arc<Sender<Body>>) {
+    let body = Body{
+        from: format!("from"),
+        to: format!("to"),
+        value: format!("value"),
+        signature: format!("signature {count}")
+    };
+    sender.send(body).await.unwrap();
+}
+
 /// this processes the request
-pub async fn process(socket: TcpStream, sender: Arc<Sender<String>>) {
+pub async fn process(socket: TcpStream, sender: Arc<Sender<Body>>) {
     let mut stream = BufStream::new(socket);
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).await.unwrap();
     let request = parse_request(buffer);
     let body = Body::parse_from_raw_body(request.body);
-    sender.send(body.signature).await.unwrap();
+    sender.send(body).await.unwrap();
 }
 
 #[cfg(test)]
