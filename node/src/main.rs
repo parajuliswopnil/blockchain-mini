@@ -54,8 +54,12 @@ async fn receive_messages(mut rx: Receiver<SerializedRecord>) {
         let message = rx.recv().await;
         match message {
             Some(msg) => {
-                let unserialized_message: Body = serde_json::from_slice(&msg.serialized_record).unwrap();
-                println!("Received from mempool:: message signature: {:?}", unserialized_message.signature);
+                let unserialized_message: Body =
+                    serde_json::from_slice(&msg.serialized_record).unwrap();
+                println!(
+                    "Received from mempool:: message signature: {:?}",
+                    unserialized_message.signature
+                );
             }
             None => sleep(time::Duration::from_secs(1)),
         }

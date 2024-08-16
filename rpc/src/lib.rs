@@ -35,7 +35,7 @@ pub trait MemoryStorable: Debug + Send {
 /// this is the request body
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Body {
-    /// message sender 
+    /// message sender
     pub from: String,
     /// message receiver
     pub to: String,
