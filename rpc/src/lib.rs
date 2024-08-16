@@ -1,6 +1,6 @@
 //! this is to make the compiler happy
 use core::time;
-use std::{fmt::format, sync::Arc, thread::sleep};
+use std::{fmt::Debug, sync::Arc, thread::sleep};
 mod utils;
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -24,13 +24,25 @@ pub enum Method {
     Delete,
 }
 
+/// structs which has to be inserted into a mempool has to implement this trait
+pub trait MemoryStorable: Debug + Send {
+    /// gives the type
+    fn of_type(&self) -> String;
+    /// serialize
+    fn serialize_(&self) -> Vec<u8>;
+}
+
 /// this is the request body
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Body {
-    from: String,
-    to: String,
-    value: String,
-    signature: String,
+    /// message sender 
+    pub from: String,
+    /// message receiver
+    pub to: String,
+    /// amount sent to the receiver: amount should be greater than zero
+    pub value: String,
+    /// signature of sender signing the serialized body object without the signature field
+    pub signature: String,
 }
 
 impl Body {
@@ -41,8 +53,18 @@ impl Body {
     }
 }
 
+impl MemoryStorable for Body {
+    fn of_type(&self) -> String {
+        format!("Body")
+    }
+
+    fn serialize_(&self) -> Vec<u8> {
+        serde_json::to_vec(self).unwrap()
+    }
+}
+
 /// this is also to make compiler happy
-pub async fn server(debug: bool, sender: tokio::sync::mpsc::Sender<Body>) {
+pub async fn server(debug: bool, sender: tokio::sync::mpsc::Sender<Box<dyn MemoryStorable>>) {
     let arc_sender = Arc::new(sender);
     if debug {
         let mut count = 0u32;
@@ -51,7 +73,7 @@ pub async fn server(debug: bool, sender: tokio::sync::mpsc::Sender<Body>) {
             tokio::spawn(async move {
                 dummy(count, cloned_sender).await;
             });
-            count+=1;
+            count += 1;
             sleep(time::Duration::from_secs(2));
         }
     }
@@ -68,24 +90,24 @@ pub async fn server(debug: bool, sender: tokio::sync::mpsc::Sender<Body>) {
     }
 }
 
-async fn dummy(count: u32, sender: Arc<Sender<Body>>) {
-    let body = Body{
+async fn dummy(count: u32, sender: Arc<Sender<Box<dyn MemoryStorable>>>) {
+    let body = Body {
         from: format!("from"),
         to: format!("to"),
         value: format!("value"),
-        signature: format!("signature {count}")
+        signature: format!("signature {count}"),
     };
-    sender.send(body).await.unwrap();
+    sender.send(Box::new(body)).await.unwrap();
 }
 
 /// this processes the request
-pub async fn process(socket: TcpStream, sender: Arc<Sender<Body>>) {
+pub async fn process(socket: TcpStream, sender: Arc<Sender<Box<dyn MemoryStorable>>>) {
     let mut stream = BufStream::new(socket);
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).await.unwrap();
     let request = parse_request(buffer);
     let body = Body::parse_from_raw_body(request.body);
-    sender.send(body).await.unwrap();
+    sender.send(Box::new(body)).await.unwrap();
 }
 
 #[cfg(test)]
