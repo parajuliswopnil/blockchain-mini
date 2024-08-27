@@ -33,7 +33,7 @@ pub trait MempoolTrait {
     /// gets the total number of records in the mempool
     fn get_total_record_count(&self) -> usize;
     /// gets and deletes the first n records in the mempool
-    fn get_n_records(&self) -> Vec<SerializedRecord>;
+    fn get_n_records(&self, n: usize) -> Vec<SerializedRecord>;
 }
 
 /// Mempool
@@ -67,11 +67,11 @@ impl MempoolTrait for Mempool {
         self.inner.lock().unwrap().record.len()
     }
 
-    fn get_n_records(&self) -> Vec<SerializedRecord> {
+    fn get_n_records(&self, n: usize) -> Vec<SerializedRecord> {
         let mut total_records = self.get_total_record_count();
         let mut return_vector = Vec::new();
-        if total_records > 5 {
-            total_records = 5;
+        if total_records > n {
+            total_records = n;
         }
         for (i, v) in self.inner.lock().unwrap().record.iter().enumerate() {
             if i >= total_records {
@@ -108,17 +108,21 @@ pub async fn get_total_record_count(mempool: Mempool) {
 }
 
 /// get first n records
-pub async fn get_n_records(mempool: Mempool, tx: Sender<SerializedRecord>) {
+pub async fn get_n_records(n: u32, mempool: Mempool, tx: Sender<Vec<SerializedRecord>>) {
     let arc_tx = Arc::new(tx);
     loop {
         let cloned_arc_tx = arc_tx.clone();
-        let records = mempool.get_n_records();
-        for record in records {
-            let cloned_tx = cloned_arc_tx.clone();
-            tokio::spawn(async move {
-                cloned_tx.send(record).await.unwrap();
-            });
-        }
+        let records = mempool.get_n_records(n as usize);
+        println!("records length {}", records.len());
+        tokio::spawn(async move {
+            cloned_arc_tx.send(records).await.unwrap();
+        });
+        // for record in records {
+        //     let cloned_tx = cloned_arc_tx.clone();
+        //     tokio::spawn(async move {
+        //         cloned_tx.send(record).await.unwrap();
+        //     });
+        // }
         sleep(time::Duration::from_secs(10));
     }
 }
